@@ -19,19 +19,12 @@ serve(async (req) => {
 
     console.log('Translating:', { text, sourceLang, targetLang });
 
-    // Use LibreTranslate free API
-    const response = await fetch('https://libretranslate.com/translate', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        q: text,
-        source: sourceLang,
-        target: targetLang,
-        format: 'text',
-      }),
-    });
+    // Use MyMemory Translation API (free, no API key required)
+    const langPair = `${sourceLang}|${targetLang}`;
+    const encodedText = encodeURIComponent(text);
+    const url = `https://api.mymemory.translated.net/get?q=${encodedText}&langpair=${langPair}`;
+    
+    const response = await fetch(url);
 
     if (!response.ok) {
       const error = await response.text();
@@ -40,10 +33,15 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    console.log('Translation successful:', data);
+    console.log('Translation response:', data);
+
+    if (data.responseStatus !== 200) {
+      console.error('Translation error:', data.responseDetails);
+      throw new Error('Translation failed: ' + data.responseDetails);
+    }
 
     return new Response(
-      JSON.stringify({ translatedText: data.translatedText }),
+      JSON.stringify({ translatedText: data.responseData.translatedText }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
